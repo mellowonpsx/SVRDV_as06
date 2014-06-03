@@ -43,4 +43,6 @@ OTHER_FILES += \
     models/buildingblock/maps/block2.tif \
     models/buildingblock/BuildingBlock.egg \
     models/football/maps/footballtexture2.tif \
-    models/football/football.egg
+    models/football/football.egg \
+    models/player/player.egg \
+    models/player/player-throw.egg
