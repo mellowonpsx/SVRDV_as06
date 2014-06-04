@@ -1,3 +1,5 @@
+// NOTE: we have modified SVDRV_as04
+// can contain clone error
 #include "pandaFramework.h"
 #include "windowFramework.h"
 #include "nodePath.h"
@@ -23,6 +25,11 @@
 #include "audioManager.h"
 #include "audioSound.h"
 #include "material.h"
+#include "animControl.h"
+#include "animControlCollection.h"
+#include "auto_bind.h"
+#include "cIntervalManager.h"
+#include "cInterval.h"
 
 using namespace std;
 
@@ -37,10 +44,15 @@ int this_num_ball = -1;
 int total_point = 0;
 int this_point = -1;
 
+//animation
+AnimControlCollection animationControl = AnimControlCollection();
+PT(AsyncTaskManager) task_mgr = AsyncTaskManager::get_global_ptr(); //moved here for animation mods
+
 //forward declaration
 AsyncTask::DoneStatus updateScene(GenericAsyncTask *task, void *data);
 AsyncTask::DoneStatus checkCollision(GenericAsyncTask *task, void *data);
 AsyncTask::DoneStatus updateText(GenericAsyncTask *task, void *data);
+AsyncTask::DoneStatus throwShot(GenericAsyncTask *task, void *data);
 void sysExit(const Event *eventPtr, void *dataPtr);
 void infoTextHandler(const Event *eventPtr, void *dataPtr);
 void keyHandler(const Event *eventPtr, void *dataPtr);
@@ -215,10 +227,39 @@ void keyHandler(const Event *eventPtr, void *dataPtr)
     if(eventPtr->get_name() == "d") camera->set_pos(camera->get_pos()+LVecBase3(1.0,0.0,0.0));
     if(eventPtr->get_name() == "u") camera->set_pos(camera->get_pos()+LVecBase3(0.0,0.0,1.0));
     if(eventPtr->get_name() == "j") camera->set_pos(camera->get_pos()-LVecBase3(0.0,0.0,1.0));
-    if(eventPtr->get_name() == "arrow_up") camera->set_hpr(LVecBase3(camera->get_h(),camera->get_p()+1.0,camera->get_r()));
-    if(eventPtr->get_name() == "arrow_down") camera->set_hpr(LVecBase3(camera->get_h(),camera->get_p()-1.0,camera->get_r()));
-    if(eventPtr->get_name() == "arrow_left") camera->set_hpr(LVecBase3(camera->get_h()+1.0,camera->get_p(),camera->get_r()));
-    if(eventPtr->get_name() == "arrow_right") camera->set_hpr(LVecBase3(camera->get_h()-1.0,camera->get_p(),camera->get_r()));
+    if(eventPtr->get_name() == "arrow_up")
+    {
+        if(camera->get_p()<20.0)
+        {
+            camera->set_hpr(LVecBase3(camera->get_h(),camera->get_p()+1.0,camera->get_r()));
+        }
+    }
+    if(eventPtr->get_name() == "arrow_down")
+    {
+        if(camera->get_p()>-20.0)
+        {
+            camera->set_hpr(LVecBase3(camera->get_h(),camera->get_p()-1.0,camera->get_r()));
+        }
+    }
+    if(eventPtr->get_name() == "arrow_left")
+    {
+        // add limit
+        if(camera->get_h()<30.0)
+        {
+            camera->set_hpr(LVecBase3(camera->get_h()+1.0,camera->get_p(),camera->get_r()));
+            NodePath actor = camera->get_parent().find("actor_anim");
+            actor.set_h(actor.get_h()+1.0);
+        }
+    }
+    if(eventPtr->get_name() == "arrow_right")
+    {
+        if(camera->get_h()>-30.0)
+        {
+            camera->set_hpr(LVecBase3(camera->get_h()-1.0,camera->get_p(),camera->get_r()));
+            NodePath actor = camera->get_parent().find("actor_anim");
+            actor.set_h(actor.get_h()-1.0);
+        }
+    }
 }
 
 //debugModeHandler: activate and deactivate bullet physics debug mode by pressing f1/f2/f3/f4
@@ -267,8 +308,6 @@ void debugModeHandler(const Event *eventPtr, void *dataPtr)
 //initBall: init a single ball
 void initBall(NodePath *camera, BulletWorld *physics_world, WindowFramework *window, AudioSound *sound)
 {
-    if(num_ball <= 0 ) return;
-    num_ball--;
     PT(BulletCapsuleShape) sphere_shape;
     PT(BulletRigidBodyNode) sphere_rigid_node;
     NodePath np_sphere, np_sphere_model;
@@ -364,8 +403,25 @@ struct shot_data
 //shot: when key pressed, shot a new ball
 void shot(const Event *eventPtr, void *dataPtr)
 {
-    struct shot_data *this_shot_data = (struct shot_data*)dataPtr;
+    if(num_ball <= 0 ) return;
+    if(animationControl.is_playing("Cube.1")) return; //if is already animate a throw, discard key input.
+    //auto_bind(get_render().node(), _anim_controls, hierarchy_match_flags);
+    //this_shot_data->window->loop_animations(0);
+    animationControl.stop("Cube");
+    animationControl.play("Cube.1"); //do all the animation!!
+    task_mgr->add(new GenericAsyncTask("UpdateBallText", &throwShot, dataPtr));
+    //animationControl.loop("Cube", true);
+}
+
+//async task to wait animation end
+AsyncTask::DoneStatus throwShot(GenericAsyncTask *task, void *data)
+{
+    if(animationControl.is_playing("Cube.1")) return AsyncTask :: DS_cont;
+    struct shot_data *this_shot_data = (struct shot_data*)data;
     initBall(this_shot_data->camera, this_shot_data->physics_world, this_shot_data->window, this_shot_data->sound);
+    num_ball--;
+    animationControl.loop("Cube", true);
+    return AsyncTask::DS_done;
 }
 
 //load a cursor and the relative texture
@@ -611,13 +667,110 @@ void initRoom(BulletWorld *physics_world, WindowFramework *window)
     initRightWall(physics_world,window);
 }
 
+void initActor(WindowFramework *window)
+{
+    NodePath actor;
+    actor = window->load_model(window->get_panda_framework()->get_models(), "../SVDRV_as06/models/player/player.egg");
+    actor.set_name("actor_anim");
+    //node.set_scale();
+    actor.reparent_to(window->get_render());
+    actor.set_scale(2.0);
+    actor.set_pos(-0.5,-8.0, 0.0);
+    actor.set_hpr(180.0,0.0,0.0);
+    /*camera = window->get_camera_group();
+    loadCursor(camera, LVecBase3(0.0,0.0,0.0));
+    camera.set_pos(0, -9.5, 3.0);
+    //first children is camera cursor
+    camera.get_child(0).set_pos(LVecBase3(0.0,-3.0,0.0));*/
+
+    // Load the walk animation
+    window->load_model(actor, "../SVDRV_as06/models/player/player-feet.egg");
+    window->load_model(actor, "../SVDRV_as06/models/player/player-throw.egg");
+    //AnimControl *animationControl;
+    auto_bind(actor.node(), animationControl, 0);
+    // discover animation names!!
+    //for( int i = 0; i < animationControl.get_num_anims() ; i++)
+    //{
+    //    cout << i << ": " << animationControl.get_anim_name(i) << endl;
+    //}
+    animationControl.loop("Cube", true);
+    //auto_bind(actor.node(), animationControl, 0);
+    //window->load_model(actor, "../SVDRV_as06/models/player/player-feet.egg");
+
+    /*PartBundle actorPartBundle = PartBundle();
+    PartBundleNode actorPartBundleNode = PartBundleNode();
+    actorPartBundleNode.add_child(actor);
+    actorPartBundle.add_node(actorPartBundleNode);
+    AnimControl animation = AnimControl("throw", actorPartBundle, 25, 40);
+    animation.loop(true);*/
+
+    /*PT(CLerpNodePathInterval) panda_pos_interval1,
+        panda_pos_interval2,
+        panda_hpr_interval1,
+        panda_hpr_interval2;
+      panda_pos_interval1 = new CLerpNodePathInterval("panda_pos_interval1",
+                                                      13.0,
+                                                      CLerpInterval::BT_no_blend,
+                                                      true,
+                                                      false,
+                                                      actor,
+                                                      NodePath());
+      panda_pos_interval1->set_start_pos(LPoint3f(0, 10, 0));
+      panda_pos_interval1->set_end_pos(LPoint3f(0, -10, 0));
+
+      panda_pos_interval2 = new CLerpNodePathInterval("panda_pos_interval2",
+                                                      13.0,
+                                                      CLerpInterval::BT_no_blend,
+                                                      true,
+                                                      false,
+                                                      actor,
+                                                      NodePath());
+      panda_pos_interval2->set_start_pos(LPoint3f(0, -10, 0));
+      panda_pos_interval2->set_end_pos(LPoint3f(0, 10, 0));
+
+      panda_hpr_interval1 = new CLerpNodePathInterval("panda_hpr_interval1",
+                                                      3.0,
+                                                      CLerpInterval::BT_no_blend,
+                                                      true,
+                                                      false,
+                                                      actor,
+                                                      NodePath());
+      panda_hpr_interval1->set_start_hpr(LPoint3f(0, 0, 0));
+      panda_hpr_interval1->set_end_hpr(LPoint3f(180, 0, 0));
+
+      panda_hpr_interval2 = new CLerpNodePathInterval("panda_hpr_interval2",
+                                                      3.0,
+                                                      CLerpInterval::BT_no_blend,
+                                                      true,
+                                                      false,
+                                                      actor,
+                                                      NodePath());
+      panda_hpr_interval2->set_start_hpr(LPoint3f(180, 0, 0));
+      panda_hpr_interval2->set_end_hpr(LPoint3f(0, 0, 0));
+
+      // Create and play the sequence that coordinates the intervals
+      PT(CMetaInterval) panda_pace = new CMetaInterval("panda_pace");
+      panda_pace->add_c_interval(panda_pos_interval1,
+                                 0,
+                                 CMetaInterval::RS_previous_end);
+      panda_pace->add_c_interval(panda_hpr_interval1,
+                                 0,
+                                 CMetaInterval::RS_previous_end);
+      panda_pace->add_c_interval(panda_pos_interval2,
+                                 0,
+                                 CMetaInterval::RS_previous_end);
+      panda_pace->add_c_interval(panda_hpr_interval2,
+                                 0,
+                                 CMetaInterval::RS_previous_end);
+      panda_pace->loop();*/
+}
+
 //initCube: init a sigle cube in the specified position
 void initCube(BulletWorld *physics_world, WindowFramework *window, double posX, double posY, double posZ, double dim)
 {
     PT(BulletBoxShape) box_shape;
     PT(BulletRigidBodyNode) box_rigid_node;
     NodePath np_box, np_box_model;
-
     box_shape = new BulletBoxShape(LVecBase3(dim,dim,dim));
     box_rigid_node = new BulletRigidBodyNode("Box");
 
@@ -702,7 +855,6 @@ int main(int argc, char *argv[])
     PandaFramework framework;
     PT(WindowFramework) window;
     PT(BulletWorld) physics_world;
-    PT(AsyncTaskManager) task_mgr = AsyncTaskManager::get_global_ptr();
     NodePath camera;
 
     framework.open_framework(argc, argv);
@@ -741,6 +893,10 @@ int main(int argc, char *argv[])
     initRoom(physics_world, window);
     initGhostPlane(physics_world, window);
     initTable(physics_world, window);
+
+    //init actor
+    initActor(window);
+    //window->loop_animations(0);
 
     //srand shuffle rand numbers
     srand(ClockObject::get_global_clock()->get_real_time());
@@ -793,12 +949,13 @@ int main(int argc, char *argv[])
 
     //set key
     framework.define_key("escape", "callSystemExitFunction", &sysExit,(void *) 0);
-    framework.define_key("w", "callKeyHandler", &keyHandler, (void *) &camera);
-    framework.define_key("s", "callKeyHandler", &keyHandler, (void *) &camera);
-    framework.define_key("a", "callKeyHandler", &keyHandler, (void *) &camera);
-    framework.define_key("d", "callKeyHandler", &keyHandler, (void *) &camera);
-    framework.define_key("u", "callKeyHandler", &keyHandler, (void *) &camera);
-    framework.define_key("j", "callKeyHandler", &keyHandler, (void *) &camera);
+    //deactivated with model!!
+    //framework.define_key("w", "callKeyHandler", &keyHandler, (void *) &camera);
+    //framework.define_key("s", "callKeyHandler", &keyHandler, (void *) &camera);
+    //framework.define_key("a", "callKeyHandler", &keyHandler, (void *) &camera);
+    //framework.define_key("d", "callKeyHandler", &keyHandler, (void *) &camera);
+    //framework.define_key("u", "callKeyHandler", &keyHandler, (void *) &camera);
+    //framework.define_key("j", "callKeyHandler", &keyHandler, (void *) &camera);
     framework.define_key("arrow_up", "callKeyHandler", &keyHandler, (void *) &camera);
     framework.define_key("arrow_down", "callKeyHandler", &keyHandler, (void *) &camera);
     framework.define_key("arrow_left", "callKeyHandler", &keyHandler, (void *) &camera);

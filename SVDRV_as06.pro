@@ -45,4 +45,5 @@ OTHER_FILES += \
     models/football/maps/footballtexture2.tif \
     models/football/football.egg \
     models/player/player.egg \
-    models/player/player-throw.egg
+    models/player/player-throw.egg \
+    models/player/player-feet.egg
