@@ -304,7 +304,7 @@ void initBall(NodePath *camera, BulletWorld *physics_world, WindowFramework *win
 
     //cout << "sparato da: " << camera->get_pos() << endl;
 
-    np_sphere_model = window->load_model(window->get_panda_framework()->get_models(), "../SVDRV_as04/models/football/football.egg");
+    np_sphere_model = window->load_model(window->get_panda_framework()->get_models(), "../SVDRV_as06/models/football/football.egg");
     np_sphere_model.set_hpr(0.0,90.0,180.0);
 
     np_sphere_model.reparent_to(np_sphere);
@@ -342,7 +342,7 @@ void initTable(BulletWorld *physics_world, WindowFramework *window)
     node = window->get_render().attach_new_node(rigidNode);
     node.set_pos(0.0, 0.0, 1.0);
 
-    nodeModel = window->load_model(window->get_panda_framework()->get_models(), "../SVDRV_as04/models/bigtable/BigTable.egg");
+    nodeModel = window->load_model(window->get_panda_framework()->get_models(), "../SVDRV_as06/models/bigtable/BigTable.egg");
     nodeModel.set_pos(0.0, 0.0, -1.0);
     nodeModel.set_scale(0.61);
 
@@ -384,7 +384,7 @@ void loadCursor(NodePath &cursorFather, LVecBase3 pos)
 
     PT(TextureStage) ts = new TextureStage("ts");
     ts->set_mode(TextureStage::M_modulate);
-    PT(Texture) tex = TexturePool::get_global_ptr()->load_texture("../SVDRV_as04/texture/cursor.png");
+    PT(Texture) tex = TexturePool::get_global_ptr()->load_texture("../SVDRV_as06/texture/cursor.png");
 
     cursorTexture.set_texture(ts, tex);
     cursorTexture.set_transparency(TransparencyAttrib::M_alpha);
@@ -437,7 +437,7 @@ void initFloor(BulletWorld *physics_world, WindowFramework *window)
 
     PT(TextureStage) ts = new TextureStage("ts");
     ts->set_mode(TextureStage::M_modulate);
-    PT(Texture) tex = TexturePool::get_global_ptr()->load_texture("../SVDRV_as04/texture/floor.jpg");
+    PT(Texture) tex = TexturePool::get_global_ptr()->load_texture("../SVDRV_as06/texture/floor.jpg");
 
     np_ground_tex.set_p(270);
     np_ground_tex.set_tex_scale(ts, 10, 10);
@@ -468,7 +468,7 @@ void initRoof(BulletWorld *physics_world, WindowFramework *window)
 
     PT(TextureStage) ts = new TextureStage("ts");
     ts->set_mode(TextureStage::M_modulate);
-    PT(Texture) tex = TexturePool::get_global_ptr()->load_texture("../SVDRV_as04/texture/roof.jpg");
+    PT(Texture) tex = TexturePool::get_global_ptr()->load_texture("../SVDRV_as06/texture/roof.jpg");
 
     np_ground_tex.set_p(90);
     np_ground_tex.set_tex_scale(ts, 1, 1);
@@ -499,7 +499,7 @@ void initFrontWall(BulletWorld *physics_world, WindowFramework *window)
 
     PT(TextureStage) ts = new TextureStage("ts");
     ts->set_mode(TextureStage::M_modulate);
-    PT(Texture) tex = TexturePool::get_global_ptr()->load_texture("../SVDRV_as04/texture/wall.jpg");
+    PT(Texture) tex = TexturePool::get_global_ptr()->load_texture("../SVDRV_as06/texture/wall.jpg");
 
     //np_ground_tex.set_p(90);
     np_ground_tex.set_tex_scale(ts, 1, 1);
@@ -530,7 +530,7 @@ void initBackWall(BulletWorld *physics_world, WindowFramework *window)
 
     PT(TextureStage) ts = new TextureStage("ts");
     ts->set_mode(TextureStage::M_modulate);
-    PT(Texture) tex = TexturePool::get_global_ptr()->load_texture("../SVDRV_as04/texture/wall.jpg");
+    PT(Texture) tex = TexturePool::get_global_ptr()->load_texture("../SVDRV_as06/texture/wall.jpg");
 
     np_ground_tex.set_h(180);
     np_ground_tex.set_tex_scale(ts, 1, 1);
@@ -561,7 +561,7 @@ void initLeftWall(BulletWorld *physics_world, WindowFramework *window)
 
     PT(TextureStage) ts = new TextureStage("ts");
     ts->set_mode(TextureStage::M_modulate);
-    PT(Texture) tex = TexturePool::get_global_ptr()->load_texture("../SVDRV_as04/texture/wall.jpg");
+    PT(Texture) tex = TexturePool::get_global_ptr()->load_texture("../SVDRV_as06/texture/wall.jpg");
 
     np_ground_tex.set_h(90);
     np_ground_tex.set_tex_scale(ts, 1, 1);
@@ -592,7 +592,7 @@ void initRightWall(BulletWorld *physics_world, WindowFramework *window)
 
     PT(TextureStage) ts = new TextureStage("ts");
     ts->set_mode(TextureStage::M_modulate);
-    PT(Texture) tex = TexturePool::get_global_ptr()->load_texture("../SVDRV_as04/texture/wall.jpg");
+    PT(Texture) tex = TexturePool::get_global_ptr()->load_texture("../SVDRV_as06/texture/wall.jpg");
 
     np_ground_tex.set_h(-90);
     np_ground_tex.set_tex_scale(ts, 1, 1);
@@ -635,7 +635,7 @@ void initCube(BulletWorld *physics_world, WindowFramework *window, double posX, 
     //PT(CollisionNode) cgNode = new CollisionNode("TrasparentBox");
     //cgNode->add_solid(new CollisionBox(LPoint3(0.0,0.0,0.0),dim,dim,dim));
     //np_box_model = window->get_render().attach_new_node(cgNode);
-    np_box_model = window->load_model(window->get_panda_framework()->get_models(), "../SVDRV_as04/models/buildingblock/BuildingBlock.egg");
+    np_box_model = window->load_model(window->get_panda_framework()->get_models(), "../SVDRV_as06/models/buildingblock/BuildingBlock.egg");
     np_box_model.set_pos(-0.0, -0.0, -0.1);
     np_box_model.set_scale(1.25);
     np_box_model.reparent_to(np_box);
@@ -706,7 +706,7 @@ int main(int argc, char *argv[])
     NodePath camera;
 
     framework.open_framework(argc, argv);
-    framework.set_window_title("SVDRV_as04");
+    framework.set_window_title("SVDRV_as06");
 
     window = framework.open_window();
     window->enable_keyboard();
@@ -818,7 +818,7 @@ int main(int argc, char *argv[])
 
     //load sound
     PT(AudioManager) audioManager = AudioManager::create_AudioManager();
-    PT(AudioSound) mySound =  audioManager->get_sound("../SVDRV_as04/sounds/shot_sound.wav");
+    PT(AudioSound) mySound =  audioManager->get_sound("../SVDRV_as06/sounds/shot_sound.wav");
     audioManager->set_active(true);
 
     //data to shoot thread
