@@ -31,6 +31,9 @@
 #include "cIntervalManager.h"
 #include "cInterval.h"
 
+#define FEET_ANIM_NAME "feet"
+#define THROW_ANIM_NAME "throw"
+
 using namespace std;
 
 //step_point is used to give more ball by prize
@@ -404,23 +407,23 @@ struct shot_data
 void shot(const Event *eventPtr, void *dataPtr)
 {
     if(num_ball <= 0 ) return;
-    if(animationControl.is_playing("Cube.1")) return; //if is already animate a throw, discard key input.
+    if(animationControl.is_playing(THROW_ANIM_NAME)) return; //if is already animate a throw, discard key input.
     //auto_bind(get_render().node(), _anim_controls, hierarchy_match_flags);
     //this_shot_data->window->loop_animations(0);
-    animationControl.stop("Cube");
-    animationControl.play("Cube.1"); //do all the animation!!
+    animationControl.stop(FEET_ANIM_NAME);
+    animationControl.play(THROW_ANIM_NAME); //do all the animation!!
     task_mgr->add(new GenericAsyncTask("UpdateBallText", &throwShot, dataPtr));
-    //animationControl.loop("Cube", true);
+    // moved in Async throwShot animationControl.loop("Cube", true);
 }
 
 //async task to wait animation end
 AsyncTask::DoneStatus throwShot(GenericAsyncTask *task, void *data)
 {
-    if(animationControl.is_playing("Cube.1")) return AsyncTask :: DS_cont;
+    if(animationControl.is_playing(THROW_ANIM_NAME)) return AsyncTask :: DS_cont;
     struct shot_data *this_shot_data = (struct shot_data*)data;
     initBall(this_shot_data->camera, this_shot_data->physics_world, this_shot_data->window, this_shot_data->sound);
     num_ball--;
-    animationControl.loop("Cube", true);
+    animationControl.loop(FEET_ANIM_NAME, true);
     return AsyncTask::DS_done;
 }
 
@@ -677,92 +680,53 @@ void initActor(WindowFramework *window)
     actor.set_scale(2.0);
     actor.set_pos(-0.5,-8.0, 0.0);
     actor.set_hpr(180.0,0.0,0.0);
-    /*camera = window->get_camera_group();
-    loadCursor(camera, LVecBase3(0.0,0.0,0.0));
-    camera.set_pos(0, -9.5, 3.0);
-    //first children is camera cursor
-    camera.get_child(0).set_pos(LVecBase3(0.0,-3.0,0.0));*/
 
-    // Load the walk animation
-    window->load_model(actor, "../SVDRV_as06/models/player/player-feet.egg");
-    window->load_model(actor, "../SVDRV_as06/models/player/player-throw.egg");
-    //AnimControl *animationControl;
+    // Load the walk animation (not work on multiple animation!)
+    /*window->load_model(actor, "../SVDRV_as06/models/player/player-feet.egg");
+    //window->load_model(actor, "../SVDRV_as06/models/player/player-throw.egg");
     auto_bind(actor.node(), animationControl, 0);
     // discover animation names!!
-    //for( int i = 0; i < animationControl.get_num_anims() ; i++)
-    //{
-    //    cout << i << ": " << animationControl.get_anim_name(i) << endl;
-    //}
-    animationControl.loop("Cube", true);
-    //auto_bind(actor.node(), animationControl, 0);
-    //window->load_model(actor, "../SVDRV_as06/models/player/player-feet.egg");
-
-    /*PartBundle actorPartBundle = PartBundle();
-    PartBundleNode actorPartBundleNode = PartBundleNode();
-    actorPartBundleNode.add_child(actor);
-    actorPartBundle.add_node(actorPartBundleNode);
-    AnimControl animation = AnimControl("throw", actorPartBundle, 25, 40);
-    animation.loop(true);*/
-
-    /*PT(CLerpNodePathInterval) panda_pos_interval1,
-        panda_pos_interval2,
-        panda_hpr_interval1,
-        panda_hpr_interval2;
-      panda_pos_interval1 = new CLerpNodePathInterval("panda_pos_interval1",
-                                                      13.0,
-                                                      CLerpInterval::BT_no_blend,
-                                                      true,
-                                                      false,
-                                                      actor,
-                                                      NodePath());
-      panda_pos_interval1->set_start_pos(LPoint3f(0, 10, 0));
-      panda_pos_interval1->set_end_pos(LPoint3f(0, -10, 0));
-
-      panda_pos_interval2 = new CLerpNodePathInterval("panda_pos_interval2",
-                                                      13.0,
-                                                      CLerpInterval::BT_no_blend,
-                                                      true,
-                                                      false,
-                                                      actor,
-                                                      NodePath());
-      panda_pos_interval2->set_start_pos(LPoint3f(0, -10, 0));
-      panda_pos_interval2->set_end_pos(LPoint3f(0, 10, 0));
-
-      panda_hpr_interval1 = new CLerpNodePathInterval("panda_hpr_interval1",
-                                                      3.0,
-                                                      CLerpInterval::BT_no_blend,
-                                                      true,
-                                                      false,
-                                                      actor,
-                                                      NodePath());
-      panda_hpr_interval1->set_start_hpr(LPoint3f(0, 0, 0));
-      panda_hpr_interval1->set_end_hpr(LPoint3f(180, 0, 0));
-
-      panda_hpr_interval2 = new CLerpNodePathInterval("panda_hpr_interval2",
-                                                      3.0,
-                                                      CLerpInterval::BT_no_blend,
-                                                      true,
-                                                      false,
-                                                      actor,
-                                                      NodePath());
-      panda_hpr_interval2->set_start_hpr(LPoint3f(180, 0, 0));
-      panda_hpr_interval2->set_end_hpr(LPoint3f(0, 0, 0));
-
-      // Create and play the sequence that coordinates the intervals
-      PT(CMetaInterval) panda_pace = new CMetaInterval("panda_pace");
-      panda_pace->add_c_interval(panda_pos_interval1,
-                                 0,
-                                 CMetaInterval::RS_previous_end);
-      panda_pace->add_c_interval(panda_hpr_interval1,
-                                 0,
-                                 CMetaInterval::RS_previous_end);
-      panda_pace->add_c_interval(panda_pos_interval2,
-                                 0,
-                                 CMetaInterval::RS_previous_end);
-      panda_pace->add_c_interval(panda_hpr_interval2,
-                                 0,
-                                 CMetaInterval::RS_previous_end);
-      panda_pace->loop();*/
+    string name1;
+    for( int i = 0; i < animationControl.get_num_anims() ; i++)
+    {
+        cout << i << ": " << animationControl.get_anim_name(i) << endl;
+        name1 = animationControl.get_anim_name(i);
+    }
+    window->load_model(actor, "../SVDRV_as06/models/player/player-throw.egg");
+    auto_bind(actor.node(), animationControl, 0);
+    string name2;
+    for( int i = 0; i < animationControl.get_num_anims() ; i++)
+    {
+        cout << i << ": " << animationControl.get_anim_name(i) << endl;
+        if(animationControl.get_anim_name(i) != name1)
+            name2 = animationControl.get_anim_name(i);
+    }
+    animationControl.loop(name1, true);*/
+    // Load animation v2
+    AnimControlCollection tempCollection;
+    //animation 1
+    NodePath animNp1 = window->load_model(actor, "../SVDRV_as06/models/player/player-feet.egg");
+    auto_bind(actor.node(), tempCollection);
+    PT(AnimControl) animPtr = tempCollection.get_anim(0);
+    animationControl.store_anim(animPtr, FEET_ANIM_NAME);
+    string animName = tempCollection.get_anim_name(0);
+    tempCollection.unbind_anim(animName);
+    animNp1.detach_node();
+    //animation 2
+    NodePath animNp2 = window->load_model(actor, "../SVDRV_as06/models/player/player-throw.egg");
+    auto_bind(actor.node(), tempCollection);
+    animPtr = tempCollection.get_anim(0);
+    animationControl.store_anim(animPtr, THROW_ANIM_NAME);
+    animName = tempCollection.get_anim_name(0);
+    tempCollection.unbind_anim(animName);
+    animNp2.detach_node();
+    // print animation names
+    for( int i = 0; i < animationControl.get_num_anims() ; i++)
+    {
+        cout << i << ": " << animationControl.get_anim_name(i) << endl;
+    }
+    // start looping animation
+    animationControl.loop(FEET_ANIM_NAME, true);
 }
 
 //initCube: init a sigle cube in the specified position
@@ -800,7 +764,6 @@ void initCube(BulletWorld *physics_world, WindowFramework *window, double posX, 
     int rand_p = rand()%4;
     int rand_r = rand()%4;
     np_box.set_hpr(90.0*rand_h, 90.0*rand_p, 90.0*rand_r);
-
 }
 
 //initCubePile: create a cube pile calling initCube
